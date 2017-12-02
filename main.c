@@ -5,6 +5,7 @@
  * Created: 10/13/2017 5:37:46 PM
  * Author : madiv
  */ 
+
 #define F_CPU 1000000UL 
 #include <avr/io.h>
 #include <stdio.h>
@@ -25,9 +26,11 @@ static FILE uart0_input = FDEV_SETUP_STREAM(NULL, USART0_Receive, _FDEV_SETUP_RE
 int CheckSMS();
 void checkOKstatus();
 char sample_GPS_data (void);
+int CarStatus(int p);
 int sender();
 int CompareNumber();
 int initialstatus();
+int PrintSender();
 
 #define CAR_ON	PORTB |= (1<<PORTB1)
 #define CAR_OFF	PORTB &= ~(1<<PORTB1)
@@ -35,10 +38,10 @@ int initialstatus();
 int a; int i; char w; int y;
 char input;
 char buff[20];
-char company[]	= "+25472xxxxxxx"; //moha's No#
-char company2[]	= "+25473xxxxxxx"; //fatah's no#
-char owner[]	= "+25475xxxxxxx"; //kevin's no#
-
+char company[]	= "+2547xxxxxxxx"; //moha's No#
+char company2[]	= "+2547xxxxxxxx"; //fatah's no#
+char owner[]	= "+2547xxxxxxxx"; //kevin's no#
+//char owner[]	= "+2547xxxxxxxx"; //danstan's no#
 
 int main( void )
 {
@@ -60,10 +63,10 @@ int main( void )
 		//check availability of SMS
 		int n = 0;
 		CheckSMS(); //check if available unread SMS and its content
-		int f = buff[13]; // get car status value from buff[13]
+		int f = buff[13]; // get car status value from buff[13
 
- 		int y = buff[14] + buff[15] + buff[16]; //sum values of the 3 buffer values
-		
+		//Alter status of car
+ 		int y = buff[14] + buff[15] + buff[16]; //sum values of the 3 buffer values		
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////		
 		fdev_close();
 		stdout = &uart0_output;
@@ -166,18 +169,26 @@ int CheckSMS()
 	int E = buff[13];
 		if (E==1) // clear sms storage area if 0/1 is received
 		{
+//			printf("AT+CMGF=1\r\n");
+//			checkOKstatus();
 			printf("AT+CMGD=1,4\r\n"); //clearing all SMS in storage AREA
 			checkOKstatus();
-			printf("AT+CMGW=\"2547xxxxxxxx\",145,\"STO UNSENT\"\r\n");
+			printf("AT+CMGW=\"");
+			PrintSender();
+			printf("\",145,\"STO UNSENT\"\r\n");
 			_delay_ms(2000);
 			printf("0");
 			putchar(0x1A); //putting AT-MSG termination CTRL+Z in USART0
 		}
 		else if (E==2) // clear sms storage area if 0/1 is received
 		{
+//			printf("AT+CMGF=1\r\n");
+//			checkOKstatus();
 			printf("AT+CMGD=1,4\r\n"); //clearing all SMS in storage AREA
 			checkOKstatus();
-			printf("AT+CMGW=\"2547xxxxxxx\",145,\"STO UNSENT\"\r\n");
+			printf("AT+CMGW=\"");
+			PrintSender();
+			printf("\",145,\"STO UNSENT\"\r\n");
 			_delay_ms(2000);
 			printf("1");
 			putchar(0x1A); //putting AT-MSG termination CTRL+Z in USART0
@@ -198,6 +209,19 @@ void checkOKstatus()
 		{	w = getchar();	}
 }
 
+int CarStatus(int p)
+{
+	int c;
+	c = p;
+	if (c == 1)
+	{ CAR_OFF; }
+	else if (c == 2)
+	{ CAR_ON; }
+	else
+	{}
+	return 0;
+}
+
 int sender()
 {
 	int n;
@@ -210,6 +234,14 @@ int sender()
 	w = getchar();}
 	
 	return *buff;
+}
+
+int PrintSender()
+{
+	int n;
+	for (n=1; n<13; n++) //capture 13 digit phone number
+	{	printf("%c", buff[n]);}
+	return 0;
 }
 
 int CompareNumber()
@@ -247,7 +279,7 @@ char sample_GPS_data (void)
 	_delay_ms(3000);
 	printf("AT+CIFSR\r\n");
 	_delay_ms(2000);
-	printf("AT+CIPSTART=\"TCP\",\"SERVER_IP\",\"PORT\"\r\n");
+	printf("AT+CIPSTART=\"TCP\",\"SERVER IP\",\"PORT\"\r\n");
 	_delay_ms(1000);
 	printf("AT+CIPSEND\r\n");
 	_delay_ms(2000);
@@ -331,6 +363,10 @@ char sample_GPS_data (void)
 		}
 	
 	printf("BUFF[13] = %d\r\n", buff[13]);
+	_delay_ms(200);
+	printf("Car status is = %d\r\nText no# is :", buff[13]);
+	PrintSender();
+	printf("\r\n");
 	putchar(0x1A); //putting AT-MSG termination CTRL+Z in USART0
 	_delay_ms(2000);
 	printf("AT+CIPCLOSE\r\n");
@@ -349,6 +385,9 @@ int initialstatus()
 	printf("AT+CMGF=1\r\n");
 	_delay_ms(2000);
 	
+	printf("AT+CPMS=\"MT\",\"SM\",\"ME\"\r\n");
+	_delay_ms(2000);
+	
 	printf("AT+CMGR=1\r\n");
 	while (a < 2) //skip the <LF>
 	{
@@ -362,7 +401,7 @@ int initialstatus()
 	
 	if (w==0x02B) // if w = +
 	{
-//		sender();
+		sender();
 		
 		w = getchar();
 		while (w !=  0x0A) //w is not <LF>
