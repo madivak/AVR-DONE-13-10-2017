@@ -5,7 +5,6 @@
  * Created: 10/13/2017 5:37:46 PM
  * Author : madiv
  */ 
-
 #define F_CPU 1000000UL 
 #include <avr/io.h>
 #include <stdio.h>
@@ -50,7 +49,7 @@ int main( void )
 	USART1_Init(MYUBRR);
 	USART0_Init(MYUBRR);
 	DDRB |= (1<<DDB1); //set PORTB1 as output
-	
+	//Interaction between ATMEGA & GSM	
  	stdin = &uart0_input;
  	stdout = &uart0_output;
 //	sei();
@@ -64,16 +63,18 @@ int main( void )
 		int n = 0;
 		CheckSMS(); //check if available unread SMS and its content
 		int f = buff[13]; // get car status value from buff[13
-
+		
 		//Alter status of car
  		int y = buff[14] + buff[15] + buff[16]; //sum values of the 3 buffer values		
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////		
+ 		int y = buff[14] + buff[15] + buff[16]; //sum values of the 3 buffer values
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		//Interaction between GPS,ATMEGA & GSM
 		fdev_close();
 		stdout = &uart0_output;
 		stdin = &uart1_input;
 		sample_GPS_data ();
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//		i=0;		
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////		
 		fdev_close(); // monitor proceedings
 		stdout = &uart1_output;
 		printf("\r\nPrinting buffer");
@@ -131,7 +132,7 @@ int CheckSMS()
 		{	
 			CompareNumber();
 			z = buff[14] + buff[15] + buff[16]; //sum values of the 3 buffer values
-			if (z < 3) //A scenario of receiving text from an authorized no# with '1' or '0'
+			if (z < 3) //A scenario of receiving text from an authorized no# with '0'
 				{	buff[13] = 1;
 					CAR_OFF; 
 				}
@@ -143,7 +144,7 @@ int CheckSMS()
 		{ 
 			CompareNumber();
 			z = buff[14] + buff[15] + buff[16]; //sum values of the 3 buffer values
-			if (z < 3) //A scenario of receiving text from an authorized no# with '1' or '0'
+			if (z < 3) //A scenario of receiving text from an authorized no# with '1'
 			{	buff[13] = 2;
 				CAR_ON;
 			}
@@ -155,7 +156,7 @@ int CheckSMS()
 	else if(w==0x04F) // if w = 'O'
 	{
 		w = getchar();
-		if (w==0x04B) // if w = 'K'
+		if (w==0x04B) // if w = 'K', if there is no new sms
 		{	buff[13] = 3; buff[14] = buff[15] = buff[16] = 0; 
 			initialstatus();
 		}
@@ -283,7 +284,7 @@ char sample_GPS_data (void)
 	_delay_ms(1000);
 	printf("AT+CIPSEND\r\n");
 	_delay_ms(2000);
-	printf("\r\nCAR PLATE NO:[KBY-3214] \r\nGPGG");
+	printf("\r\nCAR PLATE NO:[KBY-xxxx] \r\nGPGG");
 	while(i == 0)
 	{
 		input = getchar();
